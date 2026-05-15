@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kafka
+  namespace: apm
+spec:
+  # Strimzi-managed Kafka pods carry strimzi.io/cluster label
+  podSelector:
+    matchLabels:
+      strimzi.io/cluster: apm-kafka
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: javi-collector
+        - podSelector:
+            matchLabels:
+              app: javi-forecast
+      ports:
+        - port: 9092
+          protocol: TCP
+  policyTypes:
+    - Ingress

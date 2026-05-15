@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ollama
+  namespace: apm
+spec:
+  podSelector:
+    matchLabels:
+      app: ollama
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: javi-collector
+      ports:
+        - port: 11434
+          protocol: TCP
+  policyTypes:
+    - Ingress

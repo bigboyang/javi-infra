@@ -1,0 +1,12 @@
+# Plaintext secret files — NEVER commit these
+*.plain.yaml
+*.secret.yaml.bak
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

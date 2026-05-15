@@ -8,6 +8,22 @@ namespace: apm
 
 resources:
   - ../../base
+  # Sealed Secrets — encrypted by kubeseal, safe to commit.
+  # Regenerate with: ./scripts/seal-secrets.sh
+  - sealed-secrets/clickhouse-sealed-secret.yaml
+  - sealed-secrets/collector-sealed-secret.yaml
+  - sealed-secrets/forecast-sealed-secret.yaml
+
+# CI pipeline injects IMAGE_TAG at build time. Replace vX.Y.Z before deploying.
+images:
+  - name: javi-collector
+    newTag: v1.0.0
+  - name: javi-forecast
+    newTag: v1.0.0
+  - name: javi-dashboard
+    newTag: v1.0.0
+  - name: javi-config-server
+    newTag: v1.0.0
 
 patches:
   # --- Kafka: scale to 3 replicas with persistent storage ---

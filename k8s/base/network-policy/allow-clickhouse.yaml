@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-clickhouse
+  namespace: apm
+spec:
+  podSelector:
+    matchLabels:
+      app: clickhouse
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: javi-collector
+        - podSelector:
+            matchLabels:
+              app: javi-forecast
+        - podSelector:
+            matchLabels:
+              app: javi-dashboard
+      ports:
+        - port: 8123
+          protocol: TCP
+        - port: 9000
+          protocol: TCP
+  policyTypes:
+    - Ingress

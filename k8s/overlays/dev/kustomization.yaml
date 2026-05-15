@@ -8,6 +8,21 @@ namespace: apm
 
 resources:
   - ../../base
+  # Dev plaintext secrets (placeholder values — do NOT use real credentials)
+  - secrets/clickhouse-secret.yaml
+  - secrets/collector-secret.yaml
+  - secrets/forecast-secret.yaml
+
+# Pin image tags for reproducibility; override with real tags as needed
+images:
+  - name: javi-collector
+    newTag: latest
+  - name: javi-forecast
+    newTag: latest
+  - name: javi-dashboard
+    newTag: latest
+  - name: javi-config-server
+    newTag: latest
 
 patches:
   - path: patches/dev-collector.yaml

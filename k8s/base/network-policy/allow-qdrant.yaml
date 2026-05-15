@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-qdrant
+  namespace: apm
+spec:
+  podSelector:
+    matchLabels:
+      app: qdrant
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: javi-collector
+        - podSelector:
+            matchLabels:
+              app: javi-forecast
+      ports:
+        - port: 6333
+          protocol: TCP
+        - port: 6334
+          protocol: TCP
+  policyTypes:
+    - Ingress
