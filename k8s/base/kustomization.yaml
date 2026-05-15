@@ -9,6 +9,8 @@ resources:
   - clickhouse/configmap.yaml
   - clickhouse/service.yaml
   - clickhouse/statefulset.yaml
+  - clickhouse/backup-pvc.yaml
+  - clickhouse/backup-cronjob.yaml
   - ollama/pvc.yaml
   - ollama/deployment.yaml
   - ollama/service.yaml
@@ -53,3 +55,4 @@ resources:
   - network-policy/allow-forecast.yaml
   - network-policy/allow-dashboard.yaml
   - network-policy/allow-config-server.yaml
+  - network-policy/allow-prometheus-scraping.yaml

@@ -1,0 +1,59 @@
+# TODO: yourdomain.com을 실제 도메인으로 교체하세요.
+# DNS: *.apm.yourdomain.com → nginx Ingress LoadBalancer IP 필요
+# 처음 배포 시 cert-manager.io/cluster-issuer를 letsencrypt-staging으로 설정 후 테스트.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: apm-ingress
+  namespace: apm
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  # $patch: replace — base의 .local 호스트 규칙 전체를 실제 도메인으로 교체
+  $patch: replace
+  ingressClassName: nginx
+  rules:
+    - host: dashboard.apm.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: javi-dashboard
+                port:
+                  number: 8080
+    - host: config.apm.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: javi-config-server
+                port:
+                  number: 18888
+    - host: collector.apm.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: javi-collector
+                port:
+                  number: 4318
+  tls:
+    - hosts:
+        - dashboard.apm.yourdomain.com
+      secretName: dashboard-tls
+    - hosts:
+        - config.apm.yourdomain.com
+      secretName: config-tls
+    - hosts:
+        - collector.apm.yourdomain.com
+      secretName: collector-tls

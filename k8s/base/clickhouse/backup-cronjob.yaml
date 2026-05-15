@@ -1,0 +1,96 @@
+# ClickHouse 자동 백업 — 매일 새벽 2시 (KST 기준이면 UTC 17:00 = "0 17 * * *")
+# 백업 방식: clickhouse-client → Native format + gzip 압축
+# 보관 정책: 최근 7개 백업 유지, 이전 백업 자동 삭제
+# 복구 방법:
+#   kubectl exec -it clickhouse-0 -n apm -- clickhouse-client
+#   > CREATE TABLE apm.<table> ... ;
+#   > INSERT INTO apm.<table> FORMAT Native  (stdin에 .native.gz 압축 해제 후 pipe)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: clickhouse-backup
+  namespace: apm
+  labels:
+    app: clickhouse-backup
+spec:
+  # UTC 기준 02:00 KST = UTC 17:00 전날
+  # 로컬 타임존에 맞게 조정: https://crontab.guru
+  schedule: "0 17 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: clickhouse-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: clickhouse/clickhouse-server:24.3-alpine
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  BACKUP_NAME="$(date +%Y%m%d-%H%M)"
+                  BACKUP_DIR="/backups/${BACKUP_NAME}"
+                  mkdir -p "${BACKUP_DIR}"
+
+                  echo "[$(date)] 백업 시작: ${BACKUP_NAME}"
+
+                  # 스키마 백업
+                  clickhouse-client \
+                    --host clickhouse-svc \
+                    --port 9000 \
+                    --user default \
+                    --password "${CLICKHOUSE_PASSWORD}" \
+                    --query "SELECT create_table_query FROM system.tables WHERE database='apm' FORMAT TabSeparated" \
+                    > "${BACKUP_DIR}/schema.sql"
+
+                  # 테이블별 데이터 백업 (Native format — 빠르고 정확, clickhouse 전용)
+                  TABLES=$(clickhouse-client \
+                    --host clickhouse-svc \
+                    --port 9000 \
+                    --user default \
+                    --password "${CLICKHOUSE_PASSWORD}" \
+                    --query "SELECT name FROM system.tables WHERE database='apm' AND engine NOT LIKE '%View%' FORMAT TabSeparated")
+
+                  for TABLE in ${TABLES}; do
+                    echo "[$(date)] 테이블 백업: apm.${TABLE}"
+                    clickhouse-client \
+                      --host clickhouse-svc \
+                      --port 9000 \
+                      --user default \
+                      --password "${CLICKHOUSE_PASSWORD}" \
+                      --query "SELECT * FROM apm.${TABLE} FORMAT Native" \
+                      | gzip > "${BACKUP_DIR}/${TABLE}.native.gz"
+                  done
+
+                  echo "[$(date)] 백업 완료: ${BACKUP_DIR}"
+
+                  # 보관 정책: 최근 7개만 유지
+                  ls -1dt /backups/20* 2>/dev/null | tail -n +8 | xargs -r rm -rf
+                  echo "[$(date)] 오래된 백업 정리 완료 (7개 초과분 삭제)"
+              env:
+                - name: CLICKHOUSE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: clickhouse-secret
+                      key: password
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "256Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "1Gi"
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: clickhouse-backup

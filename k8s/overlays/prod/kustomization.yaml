@@ -88,3 +88,7 @@ patches:
 
   # --- Dashboard: 2 replicas, prod resources ---
   - path: patches/dashboard-prod.yaml
+
+  # --- Ingress: HTTPS + cert-manager Let's Encrypt ---
+  # TODO: patches/ingress-tls.yaml의 yourdomain.com을 실제 도메인으로 교체 후 적용
+  - path: patches/ingress-tls.yaml

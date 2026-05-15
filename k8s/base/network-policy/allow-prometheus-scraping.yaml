@@ -1,0 +1,19 @@
+# Prometheus(monitoring 네임스페이스)가 apm 네임스페이스 Pod 메트릭을 수집할 수 있도록 허용
+# kube-prometheus-stack의 additionalScrapeConfigs로 수집 시 필요
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scraping
+  namespace: apm
+spec:
+  podSelector: {}
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+  policyTypes:
+    - Ingress

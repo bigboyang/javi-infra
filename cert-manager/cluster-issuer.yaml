@@ -1,0 +1,44 @@
+# cert-manager ClusterIssuer — Let's Encrypt ACME HTTP-01 challenge
+#
+# 설치 순서:
+# 1. cert-manager CRD 설치:
+#    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+# 2. cert-manager Pod가 Ready 상태가 된 후:
+#    kubectl apply -f cert-manager/cluster-issuer.yaml
+# 3. 검증(staging): kubectl describe clusterissuer letsencrypt-staging
+#
+# HTTP-01 challenge 요구사항:
+#   - nginx ingress controller가 실행 중이어야 함
+#   - 도메인 DNS가 클러스터 LB IP를 가리켜야 함 (*.local 도메인은 불가)
+
+# Staging: 테스트용 (rate limit 없음, 브라우저에서 인증서 경고 발생)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: bigboyang@knou.ac.kr
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
+---
+# Production: 실제 신뢰되는 인증서 (week당 발급 한도 있음)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: bigboyang@knou.ac.kr
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx

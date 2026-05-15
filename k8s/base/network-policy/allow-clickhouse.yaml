@@ -23,5 +23,12 @@ spec:
           protocol: TCP
         - port: 9000
           protocol: TCP
+    - from:
+        - podSelector:
+            matchLabels:
+              app: clickhouse-backup
+      ports:
+        - port: 9000
+          protocol: TCP
   policyTypes:
     - Ingress
