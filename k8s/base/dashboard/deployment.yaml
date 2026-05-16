@@ -26,6 +26,7 @@ spec:
         prometheus.io/port: "8080"
         prometheus.io/path: "/health"
     spec:
+      serviceAccountName: javi-dashboard
       initContainers:
         - name: wait-for-clickhouse
           image: busybox:1.36

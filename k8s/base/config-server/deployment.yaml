@@ -19,6 +19,7 @@ spec:
         app: javi-config-server
         component: config
     spec:
+      serviceAccountName: javi-config-server
       containers:
         - name: config-server
           image: javi-config-server:latest

@@ -28,6 +28,7 @@ spec:
             app: clickhouse-backup
         spec:
           restartPolicy: OnFailure
+          serviceAccountName: clickhouse-backup
           containers:
             - name: backup
               image: clickhouse/clickhouse-server:24.3-alpine

@@ -17,6 +17,7 @@ spec:
         app: clickhouse
     spec:
       terminationGracePeriodSeconds: 60
+      serviceAccountName: clickhouse
       containers:
         - name: clickhouse
           image: clickhouse/clickhouse-server:24.3-alpine

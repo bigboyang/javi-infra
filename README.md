@@ -13,14 +13,19 @@ javi-infra/
 │   └── apps/
 │       ├── apm-prod-app.yaml    # prod 자동 배포 (auto-sync)
 │       ├── apm-dev-app.yaml     # dev 수동 배포
-│       └── monitoring-app.yaml  # kube-prometheus-stack
+│       ├── monitoring-app.yaml  # kube-prometheus-stack
+│       ├── redis-ha-app.yaml    # bitnami/redis Sentinel (prod HA)
+│       └── keda-app.yaml        # KEDA operator (Kafka lag 스케일링)
 ├── cert-manager/
 │   └── cluster-issuer.yaml      # Let's Encrypt staging + prod ClusterIssuer
 └── k8s/
     ├── base/                    # Environment-agnostic manifests
     │   ├── namespace.yaml
     │   ├── ingress.yaml
+    │   ├── resource-quota.yaml      # namespace CPU/Memory 예산
     │   ├── kustomization.yaml
+    │   ├── rbac/
+    │   │   └── service-accounts.yaml  # 서비스별 전용 ServiceAccount
     │   ├── clickhouse/
     │   │   ├── backup-pvc.yaml      # 백업용 PVC (20Gi)
     │   │   └── backup-cronjob.yaml  # 매일 02:00 자동 백업
@@ -34,12 +39,14 @@ javi-infra/
     │   └── redis/
     └── overlays/
         ├── dev/                 # Single replica, ephemeral storage, reduced resources
-        │   ├── kustomization.yaml
+        │   ├── kustomization.yaml  # CPU HPA included (no KEDA)
         │   └── patches/
         └── prod/                # 3-replica Kafka, persistent storage, scaled resources
             ├── kustomization.yaml
+            ├── scaledobject-forecast.yaml  # KEDA Kafka lag ScaledObject
             └── patches/
-                └── ingress-tls.yaml  # HTTPS + cert-manager
+                ├── ingress-tls.yaml   # HTTPS + cert-manager
+                └── ollama-gpu.yaml    # GPU nodeSelector + tolerations
 ```
 
 ## Services
@@ -124,6 +131,98 @@ helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
 kubectl create secret generic grafana-admin-secret -n monitoring \
   --from-literal=admin-user=admin \
   --from-literal=admin-password="$(openssl rand -base64 24)"
+```
+
+## RBAC — ServiceAccount 분리
+
+각 서비스는 전용 ServiceAccount를 가지며 `automountServiceAccountToken: false`로 K8s API 접근을 차단합니다.
+
+| ServiceAccount | 대상 워크로드 |
+|---------------|--------------|
+| javi-collector | Collector Deployment |
+| javi-forecast | Forecast Deployment |
+| javi-dashboard | Dashboard Deployment |
+| javi-config-server | Config Server Deployment |
+| ollama | Ollama Deployment |
+| qdrant | Qdrant StatefulSet |
+| clickhouse | ClickHouse StatefulSet |
+| clickhouse-backup | Backup CronJob |
+| redis | Redis Deployment (base/dev) |
+
+## Redis HA — Sentinel
+
+Prod에서는 base의 단일 Redis(replicas=0으로 비활성화)를 대신해 bitnami/redis Sentinel 3노드를 사용합니다.
+
+```bash
+# 1. ArgoCD가 redis-ha-app을 자동 배포
+kubectl apply -f argocd/apps/redis-ha-app.yaml
+
+# 상태 확인
+kubectl get pods -n apm -l app.kubernetes.io/name=redis
+
+# 마스터 확인
+kubectl exec -n apm redis-ha-redis-node-0 -c redis -- redis-cli info replication | grep role
+```
+
+- 마스터 서비스: `redis-ha-redis-master:6379` (forecast REDIS_URL로 자동 설정됨)
+- Sentinel 포트: 26379 (quorum 2/3)
+- 장애 발생 시 Sentinel이 자동으로 새 마스터 승격
+
+## KEDA — Kafka Lag 기반 스케일링
+
+Prod에서 `javi-forecast`는 CPU 기반 HPA 대신 Kafka consumer lag으로 스케일링됩니다.
+
+```bash
+# 1. KEDA operator 설치 (ArgoCD가 keda-app으로 자동 배포)
+kubectl apply -f argocd/apps/keda-app.yaml
+
+# ScaledObject 상태 확인
+kubectl get scaledobject -n apm
+kubectl describe scaledobject javi-forecast -n apm
+
+# 현재 lag 확인
+kubectl get hpa -n apm  # KEDA가 내부적으로 생성하는 HPA
+```
+
+- Kafka topic: `spans.all`, consumer group: `javi-forecast`
+- lagThreshold: 100 (lag이 100 이상이면 Pod 추가)
+- minReplicas: 2, maxReplicas: 8
+- Dev 환경: KEDA 없이 CPU 기반 HPA 사용 (`k8s/base/forecast/hpa.yaml`)
+
+## Ollama — GPU 노드 분리
+
+Prod에서 Ollama Pod는 GPU 노드에만 스케줄됩니다.
+
+```bash
+# GPU 노드에 레이블 부여 (최초 1회)
+kubectl label node <gpu-node-name> accelerator=nvidia
+
+# 확인
+kubectl get node --show-labels | grep accelerator
+kubectl get pod -n apm -l app=ollama -o wide
+```
+
+- `nodeSelector: accelerator: nvidia`
+- `tolerations: nvidia.com/gpu: NoSchedule`
+- GPU 리소스: `nvidia.com/gpu: 1` (NVIDIA device plugin 필요)
+- GPU 노드가 없으면 Pod가 Pending 상태로 대기
+
+## ResourceQuota
+
+`apm` 네임스페이스 전체에 리소스 예산을 설정합니다.
+
+| 항목 | 제한 |
+|------|------|
+| requests.cpu | 8 코어 |
+| requests.memory | 24Gi |
+| limits.cpu | 20 코어 |
+| limits.memory | 48Gi |
+| pods | 60 |
+| services / PVC / secret / configmap | 20 / 20 / 40 / 40 |
+
+```bash
+# 현재 사용량 확인
+kubectl describe resourcequota apm-quota -n apm
 ```
 
 ## ClickHouse 백업

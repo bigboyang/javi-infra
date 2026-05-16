@@ -5,6 +5,8 @@ namespace: apm
 
 resources:
   - namespace.yaml
+  - rbac/service-accounts.yaml
+  - resource-quota.yaml
   # Infra — stateful services
   - clickhouse/configmap.yaml
   - clickhouse/service.yaml
@@ -29,7 +31,6 @@ resources:
   - collector/pdb.yaml
   - forecast/deployment.yaml
   - forecast/service.yaml
-  - forecast/hpa.yaml
   - forecast/pdb.yaml
   # Config Server — agent remote config polling
   - config-server/pvc.yaml

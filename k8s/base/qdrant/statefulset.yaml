@@ -17,6 +17,7 @@ spec:
         app: qdrant
     spec:
       terminationGracePeriodSeconds: 30
+      serviceAccountName: qdrant
       containers:
         - name: qdrant
           image: qdrant/qdrant:v1.11.0

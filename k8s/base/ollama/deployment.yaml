@@ -16,6 +16,7 @@ spec:
         app: ollama
     spec:
       terminationGracePeriodSeconds: 30
+      serviceAccountName: ollama
 
       # 모델 사전 다운로드 (nomic-embed-text + qwen2.5:1.5b)
       initContainers:

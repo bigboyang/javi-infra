@@ -26,6 +26,7 @@ spec:
         checksum/config: "change-me-on-deploy"
     spec:
       terminationGracePeriodSeconds: 30
+      serviceAccountName: javi-collector
 
       # ClickHouse / Ollama / Qdrant가 준비된 후에 시작
       initContainers:

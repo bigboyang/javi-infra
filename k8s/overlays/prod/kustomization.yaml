@@ -13,6 +13,8 @@ resources:
   - sealed-secrets/clickhouse-sealed-secret.yaml
   - sealed-secrets/collector-sealed-secret.yaml
   - sealed-secrets/forecast-sealed-secret.yaml
+  # KEDA ScaledObject — replaces forecast HPA (KEDA operator must be bootstrapped first)
+  - scaledobject-forecast.yaml
 
 # CI pipeline injects IMAGE_TAG at build time. Replace vX.Y.Z before deploying.
 images:
@@ -92,3 +94,28 @@ patches:
   # --- Ingress: HTTPS + cert-manager Let's Encrypt ---
   # TODO: patches/ingress-tls.yaml의 yourdomain.com을 실제 도메인으로 교체 후 적용
   - path: patches/ingress-tls.yaml
+
+  # --- Ollama: GPU 노드 배치 ---
+  # TODO: GPU 노드에 accelerator=nvidia 레이블 필요: kubectl label node <node> accelerator=nvidia
+  - path: patches/ollama-gpu.yaml
+
+  # --- Redis HA: base 단일 Redis 비활성화 (Sentinel은 ArgoCD redis-ha-app으로 배포) ---
+  - target:
+      kind: Deployment
+      name: redis
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 0
+
+  # --- Forecast: Redis HA Sentinel 마스터 서비스로 REDIS_URL 오버라이드 ---
+  # bitnami/redis Sentinel (redis-ha-app)의 마스터 서비스: redis-ha-redis-master:6379
+  - target:
+      kind: Deployment
+      name: javi-forecast
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: REDIS_URL
+          value: "redis://redis-ha-redis-master:6379/0"

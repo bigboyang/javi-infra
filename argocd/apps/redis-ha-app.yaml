@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: redis-ha
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: redis
+    # TODO: pin to the latest stable version before deploying
+    targetRevision: "20.6.3"
+    helm:
+      valuesObject:
+        architecture: replication
+        auth:
+          enabled: false
+        sentinel:
+          enabled: true
+          masterSet: mymaster
+          quorum: 2
+        replica:
+          replicaCount: 3
+          persistence:
+            enabled: true
+            size: 5Gi
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+        master:
+          persistence:
+            enabled: true
+            size: 5Gi
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+        metrics:
+          enabled: true
+          serviceMonitor:
+            enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apm
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

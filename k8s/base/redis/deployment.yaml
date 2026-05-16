@@ -19,6 +19,7 @@ spec:
         app: redis
         component: cache
     spec:
+      serviceAccountName: redis
       containers:
         - name: redis
           image: redis:7.2-alpine
