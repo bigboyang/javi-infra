@@ -33,6 +33,14 @@ spec:
             - "yes"
             - --save
             - "60 1"
+            - --requirepass
+            - $(REDIS_PASSWORD)
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-auth-secret
+                  key: password
           volumeMounts:
             - name: data
               mountPath: /data
@@ -40,6 +48,8 @@ spec:
             exec:
               command:
                 - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
                 - ping
             initialDelaySeconds: 5
             periodSeconds: 10
@@ -47,6 +57,8 @@ spec:
             exec:
               command:
                 - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
                 - ping
             initialDelaySeconds: 10
             periodSeconds: 15

@@ -33,10 +33,10 @@ data:
   CB_FAILURE_THRESHOLD: "5"
   CB_COOLDOWN: "60s"
 
-  # AIOps
-  BASELINE_ENABLED: "true"
+  # AIOps — baseline/anomaly/RCA migrated to javi-forecast; disabled here to prevent duplicate alerts
+  BASELINE_ENABLED: "false"
   BASELINE_INTERVAL: "1h"
-  ANOMALY_ENABLED: "true"
+  ANOMALY_ENABLED: "false"
   ANOMALY_INTERVAL: "1m"
   ANOMALY_TRAIN_INTERVAL: "6h"
   ANOMALY_N_TREES: "100"
@@ -44,7 +44,7 @@ data:
   ANOMALY_Z_WARN: "2.0"
   ANOMALY_Z_CRITICAL: "3.0"
   ANOMALY_IF_THRESHOLD: "0.65"
-  RCA_ENABLED: "true"
+  RCA_ENABLED: "false"
   RCA_INTERVAL: "2m"
 
   # Alerter

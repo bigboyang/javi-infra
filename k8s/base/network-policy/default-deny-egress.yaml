@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+  namespace: apm
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS — 모든 Pod이 도메인 해석에 필요
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # kube-apiserver — SealedSecrets controller, KEDA, ServiceAccount token 검증
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 443
+          protocol: TCP
+        - port: 6443
+          protocol: TCP
+    # apm namespace 내 intra-service 통신 허용 (ClickHouse, Kafka, Redis, Qdrant, Ollama 등)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: apm

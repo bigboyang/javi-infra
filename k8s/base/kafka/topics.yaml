@@ -59,3 +59,19 @@ spec:
   config:
     retention.ms: "2592000000"   # 30 days (deploy history)
     cleanup.policy: delete
+---
+# Dead Letter Queue — ClickHouse write 실패한 spans 재처리용
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: spans.dlq
+  namespace: apm
+  labels:
+    strimzi.io/cluster: apm-kafka
+spec:
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: "2592000000"   # 30 days — DLQ는 장기 보관
+    cleanup.policy: delete
+    compression.type: lz4

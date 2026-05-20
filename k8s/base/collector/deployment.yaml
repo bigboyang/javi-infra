@@ -24,6 +24,10 @@ spec:
       annotations:
         # ConfigMap/Secret 변경 시 자동 롤링 업데이트 트리거
         checksum/config: "change-me-on-deploy"
+        # Prometheus scraping
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4318"
+        prometheus.io/path: "/metrics"
     spec:
       terminationGracePeriodSeconds: 30
       serviceAccountName: javi-collector

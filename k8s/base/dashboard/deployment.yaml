@@ -80,6 +80,10 @@ spec:
             - name: COLLECTOR_URL
               value: "http://javi-collector:4318"
 
+            # CORS — restrict to actual frontend origin in production
+            - name: CORS_ALLOWED_ORIGINS
+              value: "*"
+
           readinessProbe:
             httpGet:
               path: /health

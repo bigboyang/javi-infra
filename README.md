@@ -79,7 +79,37 @@ kubectl apply -k k8s/overlays/prod
 
 ## Image Tags
 
-CI pipelines inject `IMAGE_TAG` at build time. Base manifests use `latest` as a placeholder — never deploy base directly; always go through an overlay.
+Base manifests use short image names (`javi-dashboard`, `javi-config-server`, etc.) as placeholders. The prod overlay resolves them to full GHCR paths with pinned tags — never deploy base directly.
+
+## CI/CD — Build & Push
+
+이미지는 **GHCR** (`ghcr.io/bigboyang/`)에 푸시됩니다.
+
+### 자동 흐름
+
+```
+[source repo main push]
+  → CI (ci.yml) — build/test 통과
+    → repository_dispatch → javi-infra (build-push.yml)
+      → Docker 이미지 빌드 & GHCR 푸시
+        → k8s/overlays/prod/kustomization.yaml 이미지 태그 자동 커밋
+          → ArgoCD auto-sync → 클러스터 배포
+```
+
+### 수동 빌드
+
+GitHub Actions UI → **Build & Push Images** → Run workflow 선택:
+- `service`: `config-server` / `dashboard` / `all`
+- `tag`: 명시적 버전 (비워두면 commit SHA 사용)
+
+### 초기 설정 (최초 1회)
+
+각 소스 repo에 `INFRA_DISPATCH_TOKEN` secret 등록:
+```bash
+# GitHub → Settings → Secrets → Actions → New repository secret
+# Name: INFRA_DISPATCH_TOKEN
+# Value: repo + workflow 권한이 있는 PAT
+```
 
 ---
 

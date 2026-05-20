@@ -9,6 +9,9 @@ spec:
     spec:
       containers:
         - name: javi-dashboard
+          env:
+            - name: CORS_ALLOWED_ORIGINS
+              value: "https://apm.example.com"
           resources:
             requests:
               cpu: "200m"

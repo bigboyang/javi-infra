@@ -1,0 +1,37 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: javi-collector
+  namespace: apm
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: javi-collector
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  cooldownPeriod: 180
+  triggers:
+    # Kafka spans.all topic lag 기반 — CPU보다 실제 처리 부하를 정확히 반영
+    - type: kafka
+      metadata:
+        bootstrapServers: apm-kafka-kafka-bootstrap:9092
+        consumerGroup: javi-collector
+        topic: spans.all
+        lagThreshold: "500"
+        offsetResetPolicy: latest
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 60
+          policies:
+            - type: Pods
+              value: 2
+              periodSeconds: 60
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 120

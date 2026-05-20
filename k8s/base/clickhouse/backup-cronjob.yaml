@@ -70,11 +70,11 @@ spec:
                       | gzip > "${BACKUP_DIR}/${TABLE}.native.gz"
                   done
 
-                  echo "[$(date)] 백업 완료: ${BACKUP_DIR}"
+                  echo "[$(date)] 로컬 백업 완료: ${BACKUP_DIR}"
 
                   # 보관 정책: 최근 7개만 유지
                   ls -1dt /backups/20* 2>/dev/null | tail -n +8 | xargs -r rm -rf
-                  echo "[$(date)] 오래된 백업 정리 완료 (7개 초과분 삭제)"
+                  echo "[$(date)] 오래된 로컬 백업 정리 완료 (7개 초과분 삭제)"
               env:
                 - name: CLICKHOUSE_PASSWORD
                   valueFrom:
@@ -91,6 +91,67 @@ spec:
               volumeMounts:
                 - name: backup-storage
                   mountPath: /backups
+
+            # S3 업로드 — 오프-클러스터 백업 (노드 장애 시 데이터 보존)
+            # AWS_S3_BUCKET이 설정된 경우에만 업로드 수행
+            - name: s3-upload
+              image: amazon/aws-cli:2.15.0
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  if [ -z "${AWS_S3_BUCKET}" ]; then
+                    echo "[INFO] AWS_S3_BUCKET 미설정 — S3 업로드 건너뜀"
+                    exit 0
+                  fi
+                  BACKUP_NAME="$(date +%Y%m%d-%H%M)"
+                  BACKUP_DIR="/backups/${BACKUP_NAME}"
+                  # 로컬 백업이 완료될 때까지 대기
+                  for i in $(seq 1 30); do
+                    if [ -f "${BACKUP_DIR}/schema.sql" ]; then break; fi
+                    sleep 10
+                  done
+                  echo "[$(date)] S3 업로드 시작: s3://${AWS_S3_BUCKET}/clickhouse/${BACKUP_NAME}/"
+                  aws s3 sync "${BACKUP_DIR}" \
+                    "s3://${AWS_S3_BUCKET}/clickhouse/${BACKUP_NAME}/" \
+                    --storage-class STANDARD_IA \
+                    --only-show-errors
+                  echo "[$(date)] S3 업로드 완료"
+              env:
+                - name: AWS_S3_BUCKET
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-s3-secret
+                      key: bucket
+                      optional: true
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-s3-secret
+                      key: access_key
+                      optional: true
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-s3-secret
+                      key: secret_key
+                      optional: true
+                - name: AWS_DEFAULT_REGION
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-s3-secret
+                      key: region
+                      optional: true
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "128Mi"
+                limits:
+                  cpu: "200m"
+                  memory: "256Mi"
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+
           volumes:
             - name: backup-storage
               persistentVolumeClaim:

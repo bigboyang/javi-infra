@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: javi-test-app
+  namespace: apm
+  labels:
+    app: javi-test-app
+    component: test-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: javi-test-app
+  template:
+    metadata:
+      labels:
+        app: javi-test-app
+        component: test-app
+    spec:
+      containers:
+        - name: javi-test-app
+          image: javi-test-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: JAVI_SERVICE_NAME
+              value: "e2e-test-app"
+            - name: JAVI_COLLECTOR_ENDPOINT
+              value: "http://javi-collector:4318"
+            - name: SPRING_PROFILES_ACTIVE
+              value: "e2e"
+          readinessProbe:
+            httpGet:
+              path: /api/users/health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /api/users/health
+              port: 8080
+            initialDelaySeconds: 40
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: javi-test-app
+  namespace: apm
+  labels:
+    app: javi-test-app
+spec:
+  selector:
+    app: javi-test-app
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: javi-test-app-external
+  namespace: apm
+  labels:
+    app: javi-test-app
+spec:
+  selector:
+    app: javi-test-app
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30808
+      protocol: TCP
+  type: NodePort

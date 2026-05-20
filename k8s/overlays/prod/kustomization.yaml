@@ -13,18 +13,23 @@ resources:
   - sealed-secrets/clickhouse-sealed-secret.yaml
   - sealed-secrets/collector-sealed-secret.yaml
   - sealed-secrets/forecast-sealed-secret.yaml
-  # KEDA ScaledObject — replaces forecast HPA (KEDA operator must be bootstrapped first)
+  # KEDA ScaledObjects — replace HPA (KEDA operator must be bootstrapped first)
   - scaledobject-forecast.yaml
+  - scaledobject-collector.yaml
 
 # CI pipeline injects IMAGE_TAG at build time. Replace vX.Y.Z before deploying.
 images:
   - name: javi-collector
+    newName: ghcr.io/bigboyang/javi-collector
     newTag: v1.0.0
   - name: javi-forecast
+    newName: ghcr.io/bigboyang/javi-forecast
     newTag: v1.0.0
   - name: javi-dashboard
+    newName: ghcr.io/bigboyang/javi-dashboard
     newTag: v1.0.0
   - name: javi-config-server
+    newName: ghcr.io/bigboyang/javi-config-server
     newTag: v1.0.0
 
 patches:

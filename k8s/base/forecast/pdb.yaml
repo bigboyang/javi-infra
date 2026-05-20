@@ -4,7 +4,7 @@ metadata:
   name: javi-forecast
   namespace: apm
 spec:
-  minAvailable: 1
+  maxUnavailable: 1
   selector:
     matchLabels:
       app: javi-forecast

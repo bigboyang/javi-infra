@@ -4,3 +4,7 @@ metadata:
   name: apm
   labels:
     app.kubernetes.io/part-of: javi-apm
+    # Pod Security Standards — baseline 강제, restricted 경고/감사
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

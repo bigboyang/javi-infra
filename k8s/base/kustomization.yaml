@@ -29,8 +29,11 @@ resources:
   - collector/service.yaml
   - collector/hpa.yaml
   - collector/pdb.yaml
+  - collector/service-monitor.yaml
+  - forecast/pvc.yaml
   - forecast/deployment.yaml
   - forecast/service.yaml
+  - forecast/hpa.yaml
   - forecast/pdb.yaml
   # Config Server — agent remote config polling
   - config-server/pvc.yaml
@@ -38,6 +41,7 @@ resources:
   - config-server/service.yaml
   # Redis — FeatureStore sharing across forecast replicas
   - redis/pvc.yaml
+  - redis/secret.yaml
   - redis/deployment.yaml
   - redis/service.yaml
   # Dashboard — UI + API backend
@@ -47,6 +51,7 @@ resources:
   - ingress.yaml
   # Network policies — deny all ingress by default, allow explicit paths
   - network-policy/default-deny.yaml
+  - network-policy/default-deny-egress.yaml
   - network-policy/allow-clickhouse.yaml
   - network-policy/allow-redis.yaml
   - network-policy/allow-kafka.yaml
@@ -54,6 +59,7 @@ resources:
   - network-policy/allow-ollama.yaml
   - network-policy/allow-collector.yaml
   - network-policy/allow-forecast.yaml
+  - network-policy/allow-forecast-egress.yaml
   - network-policy/allow-dashboard.yaml
   - network-policy/allow-config-server.yaml
   - network-policy/allow-prometheus-scraping.yaml
