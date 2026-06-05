@@ -12,8 +12,8 @@ resources:
   - secrets/clickhouse-secret.yaml
   - secrets/collector-secret.yaml
   - secrets/forecast-secret.yaml
-  # Dev uses CPU-based HPA (no KEDA in dev)
-  - ../../base/forecast/hpa.yaml
+  # Dev uses CPU-based HPA (no KEDA in dev) — collector/forecast HPAs are
+  # inherited from base/kustomization.yaml; do not re-list them here.
 
 # Pin image tags for reproducibility; override with real tags as needed
 images:
