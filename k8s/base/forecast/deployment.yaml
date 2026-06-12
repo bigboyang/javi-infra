@@ -50,6 +50,14 @@ spec:
                 echo "Waiting for ClickHouse..."; sleep 3
               done
               echo "ClickHouse is up"
+          # ResourceQuota(apm-quota)가 모든 컨테이너에 requests/limits 강제
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"
       containers:
         - name: javi-forecast
           image: javi-forecast:latest
