@@ -37,6 +37,14 @@ spec:
               until nc -z clickhouse-svc 9000; do
                 echo "Waiting for ClickHouse..."; sleep 2
               done
+          # ResourceQuota(apm-quota)가 모든 컨테이너에 requests/limits 강제
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"
         - name: wait-for-forecast
           image: busybox:1.36
           command:
@@ -46,6 +54,13 @@ spec:
               until nc -z javi-forecast 8080; do
                 echo "Waiting for javi-forecast..."; sleep 3
               done
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"
       containers:
         - name: javi-dashboard
           image: javi-dashboard:latest
