@@ -53,3 +53,10 @@ data:
 
   # Tail Sampling (멀티 replica 시 아래 SELF_URL / PEER_URLS를 설정하세요)
   SAMPLING_ENABLED: "false"
+
+  # Kafka — 다운스트림 javi-forecast로 span/metric/log/deploy 이벤트를 발행한다.
+  # span 토픽은 forecast의 KAFKA_TOPICS(spans.all)와 일치해야 한다.
+  # metrics/logs/deploys 토픽은 collector 기본값(metrics/logs/deploys)이 forecast와 이미 일치한다.
+  KAFKA_ENABLED: "true"
+  KAFKA_BROKERS: "apm-kafka-kafka-bootstrap:9092"
+  KAFKA_TOPIC: "spans.all"
